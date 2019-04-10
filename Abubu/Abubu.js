@@ -392,8 +392,8 @@ function OrbitalCameraControl ( mViewMatrix,
     };
 
     this._mouse = {
-	x:0,
-	y:0
+    x:0,
+    y:0
     };
 
 
@@ -462,7 +462,7 @@ function OrbitalCameraControl ( mViewMatrix,
         if ( e.ctrlKey || e.shiftKey || e.metaKey || (e.which ==3)){
             return ;
         }
-        if(this._isLocked) {	return;	}
+        if(this._isLocked) {    return; }
         this._isDown = true;
 
         this._mouseDown = getCursorPos(e);
@@ -476,13 +476,13 @@ function OrbitalCameraControl ( mViewMatrix,
         if (  e.ctrlKey || e.shiftKey || e.metaKey || (e.which ==3) ){
             return ;
         }
-        if(this._isLocked) {	return;	}
-        if(!this._isDown)	{	return;	}
+        if(this._isLocked) {    return; }
+        if(!this._isDown)   {   return; }
         this._mouse = getCursorPos(e);
     }
 
     this._onUp = function() {
-        if(this._isLocked) {	return;	}
+        if(this._isLocked) {    return; }
         this._isDown = false;
     }
 
@@ -1979,7 +1979,7 @@ class Solver{
         this.geometry.normalize = false ;
         this.geometry.stride    = 0 ;
         this.geometry.offset    = 0 ;
-        this.geometry.primitive = gl.TRIANGLE_STRIP ;
+        this.geometry.premitive = gl.TRIANGLE_STRIP ;
         this.geometry.width = 1 ;
 
         if ( options.geometry != undefined ){
@@ -2004,8 +2004,8 @@ class Solver{
                 options.geometry.normalize ,
                 false
             ) ;
-            this.geometry.primitive = readGlOption(
-                options.geometry.primitive ,
+            this.geometry.premitive = readGlOption(
+                options.geometry.premitive ,
                 gl.TRIANGLE_STRIP
             ) ;
             this.geometry.width = readOption(
@@ -2231,11 +2231,6 @@ class Solver{
            // gl.enable( gl.TEXTURE_2D ) ;
         }
 
-        if (this.geometry.primitive == gl.POINTS) {
-            gl.enable(gl.PROGRAM_POINT_SIZE) ;
-        }
-
-
         /* binding textures and color attachments */
         for ( var tName in this.textureUniforms ){
             var activeNumber = this.textureUniforms[tName].activeNumber ;
@@ -2307,7 +2302,7 @@ class Solver{
         }
         gl.bindVertexArray(this.vao) ;
         gl.lineWidth(this.geometry.width) ;
-        gl.drawArrays(  this.geometry.primitive ,
+        gl.drawArrays(  this.geometry.premitive ,
                         this.geometry.offset ,
                         this.geometry.noVertices    );
 
@@ -2355,7 +2350,7 @@ class LineGeometry{
         for (var i=0; i<noPltPoints ; i++ ){
             this.vertices.push( 0.5/noPltPoints+i/noPltPoints,0.5,0) ;
         }
-        this.primitive = 'line_strip' ;
+        this.premitive = 'line_strip' ;
         this.noCoords = 3 ;
         this.width = 1 ;
     }
@@ -2410,7 +2405,7 @@ class UnitCubeFrameGeometry{
 
             ] ;
         this.noCoords = 3 ;
-        this.primitive = 'lines' ;
+        this.premitive = 'lines' ;
     }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *  CONSTRUCTOR ENDS
@@ -2506,7 +2501,7 @@ class UnitCubeGeometry{
         ] ;
 
         this.noCoords = 3 ;
-        this.primitive = 'triangles' ;
+        this.premitive = 'triangles' ;
     }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *  CONSTRUCTOR ENDS
@@ -7865,17 +7860,17 @@ class Storage{
         var s = new Uint32Array(1) ;
         var t = new Uint32Array(1) ;
         t[0]= randomState[3];
-	t[0] ^= t[0] >> 2;
-	t[0] ^= t[0] << 1;
-	randomState[3] = randomState[2]; randomState[2] = randomState[1]; 
+    t[0] ^= t[0] >> 2;
+    t[0] ^= t[0] << 1;
+    randomState[3] = randomState[2]; randomState[2] = randomState[1]; 
         s[0] = randomState[0]
         randomState[1] = s[0]  ;
-	t[0] ^= s[0];
-	t[0] ^= s[0] << 4;	
-	randomState[0] = t[0];
+    t[0] ^= s[0];
+    t[0] ^= s[0] << 4;  
+    randomState[0] = t[0];
         randomState[4] += 362437
         s[0] =  t[0] + randomState[4] ;
-	return s[0];
+    return s[0];
     }
 
 /*========================================================================

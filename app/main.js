@@ -6,17 +6,15 @@
  *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 */
 define([    'require',
-            'shader!PointPlt.vert',
-            'shader!PointPlt.frag',
             'shader!PassThrough.vert',
+            'shader!ComputeValues.frag',
             'shader!init.frag',
             'Abubu/Abubu'
             ],
 function(   require,
-            vertPointPlt,
-            fragPointPlt,
-            vertPassThrough,
-            fragInit,
+            vertPassThroughShader,
+            computeValuesShader,
+            initShader,
             Abubu
             ){
 "use strict" ;
@@ -65,20 +63,24 @@ function Environment(){ // Setup the environment
 
       /* model parameters         */
       this.viscosity   = 0.05;
-      this.u0         = 0.17;
+      this.u0          = 0.17;
 
       /* Solver Parameters        */
-      this.width       =   900;
-      this.height      =   900;
-      this.dt          =  1.0;
-      this.dx          =  1.0;
+      this.width       = 400;
+      this.height      = 400;
+      this.dt          = 1.0;
+      this.dx          = 1.0;
       this.time        = 0.0;
-      this.frameRate   =   2400;
+
+      // display stuff
+      this.frameRate     = 2400;
+      this.displayWidth  = 400;
+      this.displayHeight = 400;
 
       /* Solve                    */
       this.solve       = function() {
-        this.running = !this.running;
-        return;
+            this.running = !this.running;
+            return;
       };
 }
 
@@ -90,62 +92,92 @@ function run() {
       // Create the canvas
       mainCanvas = document.createElement('canvas');
       document.body.append(mainCanvas);
-      mainCanvas.width = env.width;
-      mainCanvas.height = env.height;
+      mainCanvas.width = env.displayWidth;
+      mainCanvas.height = env.displayHeight;
 
       // Add the stats thing (framerate stuff)
       var stats = new Stats();
       document.body.appendChild(stats.domElement);
 
       // Define render targets as textures
-      // TODO: add render targets
-      env.field = new Abubu.Float32Texture(env.width, env.height);
+      env.e_n_s_e_w       = new Abubu.Float32Texture(env.width, env.height);
+      env.o_n_s_e_w       = new Abubu.Float32Texture(env.width, env.height);
+      env.e_ne_se_nw_sw   = new Abubu.Float32Texture(env.width, env.height);
+      env.o_ne_se_nw_sw   = new Abubu.Float32Texture(env.width, env.height);
+      env.e_n0_rho_ux_uy  = new Abubu.Float32Texture(env.width, env.height);
+      env.o_n0_rho_ux_uy  = new Abubu.Float32Texture(env.width, env.height);
+
+      env.computedValues  = new Abubu.Float32Texture(env.width, env.height);
+      env.simDomain       = new Abubu.Float32Texture(env.width, env.height);
 
       // init shader
       env.init = new Abubu.Solver({
-            vertexShader     : vertPassThrough.value,
-            fragmentShader   : fragInit.value,
+            vertexShader     : vertPassThroughShader.value,
+            fragmentShader   : initShader.value,
+            uniforms         : {
+                  viscosity       : { type : 'f', value : env.viscosity },
+                  u0              : { type : 'f', value : env.u0        },
+                  dt              : { type : 'f', value : env.dt        },
+                  dx              : { type : 'f', value : env.dx        },
+            },
             renderTargets    : {
-                  field : { location : 0, target: env.field}
+                  e_n_s_e_w       : { location : 0, target: env.e_n_s_e_w         },
+                  o_n_s_e_w       : { location : 1, target: env.o_n_s_e_w         },
+                  e_ne_se_nw_sw   : { location : 2, target: env.e_ne_se_nw_sw     },
+                  o_ne_se_nw_sw   : { location : 3, target: env.o_ne_se_nw_sw     }, 
+                  e_n0_rho_ux_uy  : { location : 4, target: env.e_n0_rho_ux_uy    }, 
+                  o_n0_rho_ux_uy  : { location : 5, target: env.o_n0_rho_ux_uy    },
             }
       });
 
-      // Point plotting solver
-      env.pointPlotter = new Abubu.Solver({
-            vertexShader     : vertPointPlt.value,
-            fragmentShader   : fragPointPlt.value,
-
-            geometry         : {
-                  vertices   : [
-                        0.1, 0.1, 0.0,
-                        0.9, 0.1, 0.0,
-                        0.1, 0.9, 0.0,
-                  ],
-                  noVerticies : 3,
-                  noCoords    : 3,
-                  normalize   : false,
-                  primitive   : 'POINTS'
+      env.computeValues = new Abubu.Solver({
+            vertexShader     : vertPassThroughShader.value,
+            fragmentShader   : computeValuesShader.value,
+            uniforms         : {
+                  map    : { type : 't', value : env.o_n0_rho_ux_uy },
             },
+            renderTargets    : {
+                  values : { location : 0, target : env.computedValues},
+            },
+      });
 
-            canvas         : mainCanvas,
-            canvasTarget   : true
+      env.disp = new Abubu.Plot2D({
+            target   : env.o_ne_se_nw_sw,
+            channel  : 'a',
+            colormap : 'jet',
+            canvas   : mainCanvas,
+            minValue : 0,
+            maxValue : 1,
+            colorbar : true,
+            unit     : '',
       });
 
       createGUI();
 
+      env.initialize = function() {
+            env.init.render();
+            env.disp.initialize();
+            //env.disp.render();
+      }
+
       env.render = function() {
-            if (env.running) {
-                  env.startDate = performance.now();
-                  stats.update();
-                  env.time += 1;
-                  env.pointPlotter.render();
-                  env.endDate = performance.now();
-                  env.lapsed += (env.endDate - env.startDate);
-            }
-            requestAnimationFrame(env.render); // loop the render function
+            // if (env.running) {
+            //       env.startDate = performance.now();
+            //       stats.update();
+            //       env.time += 1;
+                  
+            //       env.disp.updateTipt();
+            //       env.endDate = performance.now();
+            //       env.lapsed += (env.endDate - env.startDate);
+            // }
+            //env.computeValues.render();
+            env.disp.updateTipt();
+            env.disp.render();
+            //requestAnimationFrame(env.render); // loop the render function
       }
 
       document.env = env;
+      env.initialize();
       env.render();
 }
 
