@@ -706,12 +706,17 @@ class Texture{
                             gl.TEXTURE_MAG_FILTER,
                             this.magFilter                  ) ;
 
+        if (this.internalFormat == gl.LUMINANCE
+            && this.format == gl.LUMINANCE) {
+            gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        }
+
         gl.texImage2D(      gl.TEXTURE_2D, 0 ,
                             this.internalFormat,
                             this.width, this.height, 0,
                             this.format,
                             this.type,
-                            this.data                       ) ;
+                            this.data                      ) ;
 
         gl.bindTexture(     gl.TEXTURE_2D, null             ) ;
     }
@@ -830,6 +835,7 @@ class Float32Texture extends Texture{
     constructor(w,h,options={}){
         super(w,h,'rgba32f','rgba','float',options) ;
     }
+
     resize( width, height ){
         var target = {} ;
         target.texture = this.texture ;
@@ -845,6 +851,23 @@ class Float32Texture extends Texture{
                         this.width,
                         this.height, 0, gl.RGBA, gl.FLOAT, null ) ;
         copyTexture(this.temp, target ) ;
+    }
+
+    getLoadedTexture() {
+        var frame_buffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frame_buffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER,
+                                gl.COLOR_ATTACHMENT0,
+                                gl.TEXTURE_2D,
+                                this.texture, 0);
+        var data = new Float32Array(this.width * this.height * 4);
+        gl.readPixels(0, 0,
+                      this.width,
+                      this.height,
+                      gl.RGBA,
+                      gl.FLOAT,
+                      data, 0);
+        return data;
     }
 }
 
@@ -1979,7 +2002,7 @@ class Solver{
         this.geometry.normalize = false ;
         this.geometry.stride    = 0 ;
         this.geometry.offset    = 0 ;
-        this.geometry.premitive = gl.TRIANGLE_STRIP ;
+        this.geometry.primitive = gl.TRIANGLE_STRIP ;
         this.geometry.width = 1 ;
 
         if ( options.geometry != undefined ){
@@ -2004,8 +2027,8 @@ class Solver{
                 options.geometry.normalize ,
                 false
             ) ;
-            this.geometry.premitive = readGlOption(
-                options.geometry.premitive ,
+            this.geometry.primitive = readGlOption(
+                options.geometry.primitive ,
                 gl.TRIANGLE_STRIP
             ) ;
             this.geometry.width = readOption(
@@ -2302,7 +2325,7 @@ class Solver{
         }
         gl.bindVertexArray(this.vao) ;
         gl.lineWidth(this.geometry.width) ;
-        gl.drawArrays(  this.geometry.premitive ,
+        gl.drawArrays(  this.geometry.primitive ,
                         this.geometry.offset ,
                         this.geometry.noVertices    );
 
@@ -2350,7 +2373,7 @@ class LineGeometry{
         for (var i=0; i<noPltPoints ; i++ ){
             this.vertices.push( 0.5/noPltPoints+i/noPltPoints,0.5,0) ;
         }
-        this.premitive = 'line_strip' ;
+        this.primitive = 'line_strip' ;
         this.noCoords = 3 ;
         this.width = 1 ;
     }
@@ -2405,7 +2428,7 @@ class UnitCubeFrameGeometry{
 
             ] ;
         this.noCoords = 3 ;
-        this.premitive = 'lines' ;
+        this.primitive = 'lines' ;
     }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *  CONSTRUCTOR ENDS
@@ -2501,7 +2524,7 @@ class UnitCubeGeometry{
         ] ;
 
         this.noCoords = 3 ;
-        this.premitive = 'triangles' ;
+        this.primitive = 'triangles' ;
     }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *  CONSTRUCTOR ENDS
@@ -4410,7 +4433,8 @@ class Plot1D{
  * getColormaps
  *========================================================================
  */
-function getColormaps(mapList){
+function 
+getColormaps(mapList){
     var colormaps = {} ;
     for (var i=0 ; i<mapList.length;i++ ){
         var name =mapList[i] ;
@@ -8090,6 +8114,7 @@ return {
     Tvsx                : Tvsx ,
     VolumeRayCaster     : VolumeRayCaster ,
     getColormapList     : getColormapList ,
+    getColormaps        : getColormaps,
     Probe               : Probe ,
     ProbeRecorder       : ProbeRecorder ,
     IntervalCaller      : IntervalCaller ,
